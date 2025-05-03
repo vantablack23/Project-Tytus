@@ -1,8 +1,10 @@
+#include <Preferences.h>
 #include <RobotBalonowy_inferencing.h>
 #include "edge-impulse-sdk/dsp/image/image.hpp"
 #include "esp_camera.h"
 #include <Wire.h>
 #include <PCF8574.h>
+
 
 //motors
 const int stepsPerRevolution = 2048; 
@@ -21,6 +23,9 @@ int stepIndex = 0;
 //extender
 TwoWire I2CBUS = TwoWire(0);
 PCF8574 pcf8574(0x20, &I2CBUS);
+
+//zapamietywanie pozycji
+Preferences preferences;
 
 //camera
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
@@ -89,7 +94,7 @@ static camera_config_t camera_config = {
     .fb_count = 1,       //if more than one, i2s runs in continuous mode. Use only with JPEG
     .fb_location = CAMERA_FB_IN_PSRAM,
     .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
-};
+};Dubrownik, Chorwacja
 
 /* Function definitions ------------------------------------------------------- */
 bool ei_camera_init(void);
@@ -103,6 +108,7 @@ void setup()
 {
     // put your setup code here, to run once:
     Serial.begin(115200);
+    delay(5000);
     //comment out the below line to start inference immediately after upload
     while (!Serial);
     Serial.println("Edge Impulse Inferencing Demo");
@@ -120,6 +126,20 @@ void setup()
     if (pcf8574.begin())
         Serial.println("OK");
     else Serial.println("Failed");
+
+    preferences.begin("enginesPos", false);
+    if(preferences.isKey("xAxisMotor") == false){
+        Serial.println("xAxisMotor INIT");
+        preferences.putInt("xAxisMotor", 0);
+    }
+    if(preferences.isKey("yAxisMotor") == false){
+        Serial.println("YAxisMotor INIT");
+        preferences.putInt("yAxisMotor", 0);
+    }
+    Serial.println("Resetting motors positions...");
+    resetMotorPosition(X_AXIS_MOTOR, preferences.getInt("xAxisMotor"));
+    resetMotorPosition(Y_AXIS_MOTOR, preferences.getInt("yAxisMotor"));
+    Serial.println("Resetting positions done.");
 }
 
 /**
@@ -180,8 +200,8 @@ void loop()
                 bb.y,
                 bb.width,
                 bb.height);
-        stepMotor(500, X_AXIS_MOTOR);
-        stepMotor(-500, Y_AXIS_MOTOR);
+        stepMotor(X_AXIS_MOTOR, 500);
+        stepMotor(Y_AXIS_MOTOR, -500);
         delay(500);
     }
 
@@ -348,14 +368,23 @@ static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr)
     return 0;
 }
 
-void stepMotor(int steps, int motorNum) {
+void stepMotor(int motorNum, int steps) {
     int stepsAbs = abs(steps);
+    int currentMotorPosition = 0;
+    if (motorNum == 1){
+      currentMotorPosition = preferences.getInt("xAxisMotor");
+    }
+    else if(motorNum == 2){
+      currentMotorPosition = preferences.getInt("yAxisMotor");
+    }
     for (int i = 0; i < stepsAbs; i++) {
         // wybór kroku
         if (steps >= 0) {
-        stepIndex = (stepIndex + 1) % 4;
+            stepIndex = (stepIndex + 1) % 4;
+            currentMotorPosition++;
         } else {
-        stepIndex = (stepIndex + 3) % 4;
+            stepIndex = (stepIndex + 3) % 4;
+            currentMotorPosition--;
         }
 
         if (motorNum == 1){
@@ -363,15 +392,26 @@ void stepMotor(int steps, int motorNum) {
             pcf8574.write(1,  (stepSequence[stepIndex] >> 1) & 0x01);
             pcf8574.write(2,  (stepSequence[stepIndex] >> 2) & 0x01);
             pcf8574.write(3,  (stepSequence[stepIndex] >> 3) & 0x01);
+            preferences.putInt("xAxisMotor", currentMotorPosition);
         }
         else if(motorNum == 2){
             pcf8574.write(4,  (stepSequence[stepIndex] >> 0) & 0x01);
             pcf8574.write(5,  (stepSequence[stepIndex] >> 1) & 0x01);
             pcf8574.write(6,  (stepSequence[stepIndex] >> 2) & 0x01);
             pcf8574.write(7,  (stepSequence[stepIndex] >> 3) & 0x01);
+            preferences.putInt("yAxisMotor", currentMotorPosition);
         }
         delay(2);
     }
+}
+
+void resetMotorPosition(int motorNum, int steps){
+  if(steps >= 0){
+    stepMotor(motorNum, -steps);
+  }
+  else{
+    stepMotor(motorNum, abs(steps));
+  }
 }
 
 #if !defined(EI_CLASSIFIER_SENSOR) || EI_CLASSIFIER_SENSOR != EI_CLASSIFIER_SENSOR_CAMERA
