@@ -1,10 +1,9 @@
-#include <Preferences.h>
-#include <RobotBalonowy_inferencing.h>
+#include <ProjectTytus_inferencing.h>
 #include "edge-impulse-sdk/dsp/image/image.hpp"
+#include <Preferences.h>
 #include "esp_camera.h"
 #include <Wire.h>
 #include <PCF8574.h>
-
 
 //motors
 const int stepsPerRevolution = 2048; 
@@ -120,6 +119,7 @@ void setup()
     else {
         ei_printf("Camera initialized\r\n");
     }
+
     ei_printf("\nStarting continious inference in 2 seconds...\n");
     ei_sleep(2000);
 
@@ -146,9 +146,9 @@ void setup()
     resetMotorPosition(X_AXIS_MOTOR, preferences.getInt("xAxisMotor"));
     resetMotorPosition(Y_AXIS_MOTOR, preferences.getInt("yAxisMotor"));
     Serial.println("Resetting positions done.");
+    // stepMotor(X_AXIS_MOTOR, 2048);
+    // stepMotor(Y_AXIS_MOTOR, 2048);
     Serial.printf("Model input size: %dx%d\n", EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT);
-
-
 }
 
 /**
@@ -262,6 +262,11 @@ bool ei_camera_init(void) {
 
     if (is_initialised) return true;
 
+#if defined(CAMERA_MODEL_ESP_EYE)
+  pinMode(13, INPUT_PULLUP);
+  pinMode(14, INPUT_PULLUP);
+#endif
+
     //initialize the camera
     esp_err_t err = esp_camera_init(&camera_config);
     if (err != ESP_OK) {
@@ -280,6 +285,10 @@ bool ei_camera_init(void) {
 #if defined(CAMERA_MODEL_M5STACK_WIDE)
     s->set_vflip(s, 1);
     s->set_hmirror(s, 1);
+#elif defined(CAMERA_MODEL_ESP_EYE)
+    s->set_vflip(s, 1);
+    s->set_hmirror(s, 1);
+    s->set_awb_gain(s, 1);
 #endif
 
     is_initialised = true;
@@ -404,16 +413,21 @@ void stepMotor(int motorNum, int steps) {
             pcf8574.write(1,  (stepSequence[stepIndex] >> 1) & 0x01);
             pcf8574.write(2,  (stepSequence[stepIndex] >> 2) & 0x01);
             pcf8574.write(3,  (stepSequence[stepIndex] >> 3) & 0x01);
-            preferences.putInt("xAxisMotor", currentMotorPosition);
         }
         else if(motorNum == 2){
             pcf8574.write(4,  (stepSequence[stepIndex] >> 0) & 0x01);
             pcf8574.write(5,  (stepSequence[stepIndex] >> 1) & 0x01);
             pcf8574.write(6,  (stepSequence[stepIndex] >> 2) & 0x01);
             pcf8574.write(7,  (stepSequence[stepIndex] >> 3) & 0x01);
-            preferences.putInt("yAxisMotor", currentMotorPosition);
         }
+
         delay(2);
+    }
+    if (motorNum == 1){
+        preferences.putInt("xAxisMotor", currentMotorPosition);
+    }
+    else if(motorNum == 2){
+        preferences.putInt("yAxisMotor", currentMotorPosition);
     }
 }
 

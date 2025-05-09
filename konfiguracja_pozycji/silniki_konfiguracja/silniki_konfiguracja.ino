@@ -35,17 +35,17 @@ void setup() {
       Serial.println("OK");
   else Serial.println("Failed");
 
-  preferences.begin("enginesPos", false);
-  if(preferences.isKey("xAxisMotor") == false){
-    Serial.println("xAxisMotor INIT");
-    preferences.putInt("xAxisMotor", 0);
-  }
-  if(preferences.isKey("yAxisMotor") == false){
-    Serial.println("YAxisMotor INIT");
-    preferences.putInt("yAxisMotor", 0);
-  }
-  resetMotorPosition(X_AXIS_MOTOR, preferences.getInt("xAxisMotor"));
-  resetMotorPosition(Y_AXIS_MOTOR, preferences.getInt("yAxisMotor"));
+  // preferences.begin("enginesPos", false);
+  // if(preferences.isKey("xAxisMotor") == false){
+  //   Serial.println("xAxisMotor INIT");
+  //   preferences.putInt("xAxisMotor", 0);
+  // }
+  // if(preferences.isKey("yAxisMotor") == false){
+  //   Serial.println("YAxisMotor INIT");
+  //   preferences.putInt("yAxisMotor", 0);
+  // }
+  // resetMotorPosition(X_AXIS_MOTOR, preferences.getInt("xAxisMotor"));
+  // resetMotorPosition(Y_AXIS_MOTOR, preferences.getInt("yAxisMotor"));
 }
 int val;
 void loop() {
