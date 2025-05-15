@@ -149,6 +149,27 @@ void setup()
     // stepMotor(X_AXIS_MOTOR, 2048);
     // stepMotor(Y_AXIS_MOTOR, 2048);
     Serial.printf("Model input size: %dx%d\n", EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT);
+
+    aim(0, 96, 48, 48);
+    prevX = 0;
+    prevY = 96;
+    delay(2000);
+    aim(0, 0, prevX, prevY);
+    prevX = 0;
+    prevY = 0;
+    delay(2000);
+    aim(48, 0, prevX, prevY);
+    prevX = 48;
+    prevY = 0;
+    delay(2000);
+    aim(96, 0, prevX, prevY);
+    prevX = 96;
+    prevY = 0;
+    delay(2000);
+    aim(48, 48, prevX, prevY);
+    prevX = 48;
+    prevY = 48;
+    delay(2000);
 }
 
 /**
@@ -208,12 +229,18 @@ void loop()
                 bb.x,
                 bb.y,
                 bb.width,
+
                 bb.height);
-        aim(bb.x, bb.y, prevX, prevY);
-        prevX = bb.x;
-        prevY = bb.y;
+        // aim(bb.x+(bb.width/2), bb.y+(bb.height/2), prevX, prevY);
+        // prevX = bb.x+(bb.width/2);
+        // prevY = bb.y+(bb.height/2);
         // stepMotor(X_AXIS_MOTOR, 500);
         // stepMotor(Y_AXIS_MOTOR, -500);
+
+        aim(bb.x, bb.y+bb.height, prevX, prevY);
+        prevX = bb.x;
+        prevY = bb.y+bb.height;
+
         delay(500);
     }
 
@@ -440,54 +467,125 @@ void resetMotorPosition(int motorNum, int steps){
   }
 }
 
+#define distance 128.00
+#define xMid 48
+#define yMid 48
+#define stepsToMultiply 5.69
+
+// void aim(int currX, int currY, int prevX, int prevY){
+//     //OŚ X
+//     float currDistX = float(currX-xMid); //dystans miedzy wykrytym punktem, a punktem środka obrazu
+//     float prevDistX = float(prevX-xMid);
+
+//     float currAngleX = atan(abs(currDistX)/distance)*180.00/M_PI; //wyliczenie kątó obu trójkątów
+//     float prevAngleX = atan(abs(prevDistX)/distance)*180.00/M_PI;
+
+//     float finalAngleX;
+//     int stepsX;
+
+//     if((currX < xMid && prevX > xMid) || (currX > xMid && prevX < xMid)){ //dodanie lub odjęcie kątów
+//         finalAngleX = currAngleX + prevAngleX;
+//     }
+//     else{
+//         finalAngleX = abs(currAngleX - prevAngleX);
+//     }
+
+//     stepsX = int(round(finalAngleX*stepsToMultiply));
+//     if(prevX > currX){  //kierunek obrotu
+//         stepsX = stepsX*-1;
+//     }
+
+//     stepMotor(X_AXIS_MOTOR, stepsX);
+
+//     X
+
+//     //OŚ Y
+//     float currDistY = float(currY-yMid); //dystans miedzy wykrytym punktem, a punktem środka obrazu
+//     float prevDistY = float(prevY-yMid);
+
+//     float currAngleY = atan(abs(currDistY)/distance)*180.00/M_PI; //wyliczenie kątó obu trójkątów
+//     float prevAngleY = atan(abs(prevDistY)/distance)*180.00/M_PI;
+
+//     float finalAngleY;
+//     int stepsY;
+
+//     if((currY < yMid && prevY > yMid) || (currY > yMid && prevY < yMid)){ //dodanie lub odjęcie kątów
+//         finalAngleY = currAngleY + prevAngleY;
+//     }
+//     else{
+//         finalAngleY = abs(currAngleY - prevAngleY);
+//     }
+
+
+//     stepsY = int(round(finalAngleY*stepsToMultiply));
+//     if(prevY < currY){  //kierunek obrotu
+//         stepsY = stepsY*-1;
+//     }
+
+//     stepMotor(Y_AXIS_MOTOR, stepsY);
+// }
+
 void aim(int currX, int currY, int prevX, int prevY){
+    if(currX!=prevX){
+        resetMotorPosition(X_AXIS_MOTOR, preferences.getInt("xAxisMotor"));
+    }
+    if(currY!=prevY){
+        resetMotorPosition(Y_AXIS_MOTOR, preferences.getInt("yAxisMotor"));
+    }
     //OŚ X
-    float currDistX = float(currX-48); //dystans miedzy wykrytym punktem, a punktem środka obrazu
-    float prevDistX = float(prevX-48);
+    float currDistX = abs(float(currX-xMid)); //dystans miedzy wykrytym punktem, a punktem środka obrazu
+    //float prevDistX = float(prevX-xMid);
 
-    float currAngleX = atan(abs(currDistX)/100.00)*180.00/M_PI; //wyliczenie kątó obu trójkątów
-    float prevAngleX = atan(abs(prevDistX)/100.00)*180.00/M_PI;
+    float currAngleX = atan(abs(currDistX)/distance)*180.00/M_PI; //wyliczenie kątó obu trójkątów
+    //float prevAngleX = atan(abs(prevDistX)/distance)*180.00/M_PI;
 
-    float finalAngleX;
+    float finalAngleX=currAngleX;
     int stepsX;
 
-    if((currX < 48 && prevX > 48) || (currX > 48 && prevX < 48)){ //dodanie lub odjęcie kątów
-        finalAngleX = currAngleX + prevAngleX;
-    }
-    else{
-        finalAngleX = abs(currAngleX - prevAngleX);
-    }
+    // if((currX < xMid && prevX > xMid) || (currX > xMid && prevX < xMid)){ //dodanie lub odjęcie kątów
+    //     finalAngleX = currAngleX + prevAngleX;
+    // }
+    // else{
+    //     finalAngleX = abs(currAngleX - prevAngleX);
+    // }
 
-    stepsX = int(round(finalAngleX*6));
-    if(prevX > currX){  //kierunek obrotu
+    stepsX = int(round(finalAngleX*stepsToMultiply));
+    if(currX<48){  //kierunek obrotu
         stepsX = stepsX*-1;
     }
 
-    stepMotor(X_AXIS_MOTOR, stepsX);
+    if(currX!=prevX){
+        stepMotor(X_AXIS_MOTOR, stepsX);
+    }
+
+    float przeciwProstX=sqrt((distance*distance)+(currDistX*currDistX));
 
     //OŚ Y
-    float currDistY = float(currY-48); //dystans miedzy wykrytym punktem, a punktem środka obrazu
-    float prevDistY = float(prevY-48);
+    float currDistY = float(currY-yMid); //dystans miedzy wykrytym punktem, a punktem środka obrazu
+    //float prevDistY = float(prevY-yMid);
 
-    float currAngleY = atan(abs(currDistY)/100.00)*180.00/M_PI; //wyliczenie kątó obu trójkątów
-    float prevAngleY = atan(abs(prevDistY)/100.00)*180.00/M_PI;
+    float currAngleY = atan(abs(currDistY)/przeciwProstX)*180.00/M_PI; //wyliczenie kątó obu trójkątów
+    //float prevAngleY = atan(abs(prevDistY)/distance)*180.00/M_PI;
 
-    float finalAngleY;
+    float finalAngleY = currAngleY;
     int stepsY;
+    Serial.println(finalAngleY);
+    // if((currY < yMid && prevY > yMid) || (currY > yMid && prevY < yMid)){ //dodanie lub odjęcie kątów
+    //     finalAngleY = currAngleY + prevAngleY;
+    // }
+    // else{
+    //     finalAngleY = abs(currAngleY - prevAngleY);
+    // }
 
-    if((currY < 48 && prevY > 48) || (currY > 48 && prevY < 48)){ //dodanie lub odjęcie kątów
-        finalAngleY = currAngleY + prevAngleY;
-    }
-    else{
-        finalAngleY = abs(currAngleY - prevAngleY);
-    }
 
-    stepsY = int(round(finalAngleY*6));
-    if(prevY > currY){  //kierunek obrotu
+    stepsY = int(round(finalAngleY*stepsToMultiply));
+    if(currY>=48){  //kierunek obrotu
         stepsY = stepsY*-1;
     }
 
-    stepMotor(Y_AXIS_MOTOR, stepsY);
+    if(currY!=prevY){
+        stepMotor(Y_AXIS_MOTOR, stepsY);
+    }
 }
 
 #if !defined(EI_CLASSIFIER_SENSOR) || EI_CLASSIFIER_SENSOR != EI_CLASSIFIER_SENSOR_CAMERA
